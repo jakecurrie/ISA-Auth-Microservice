@@ -7,6 +7,7 @@ type Config struct {
 	RefreshSecret string
 	UsersTable    string
 	TokensTable   string
+	ReactAppUrl   string
 }
 
 func Load() *Config {
@@ -15,5 +16,6 @@ func Load() *Config {
 		RefreshSecret: os.Getenv("REFRESH_SECRET"),
 		UsersTable:    os.Getenv("USERS_TABLE"),
 		TokensTable:   os.Getenv("TOKENS_TABLE"),
+		ReactAppUrl:   os.Getenv("REACT_APP_URL"),
 	}
 }
