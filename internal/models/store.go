@@ -15,7 +15,6 @@ type User struct {
 
 type RefreshToken struct {
 	UserID    string    `json:"user_id" dynamodbav:"user_id"`
-	Role      string    `json:"role" dynamodbav:"role"`
 	Token     string    `json:"token" dynamodbav:"token"`
 	ExpiresAt time.Time `json:"expires_at" dynamodbav:"expires_at"`
 }

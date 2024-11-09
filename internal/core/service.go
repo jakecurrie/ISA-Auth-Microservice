@@ -9,7 +9,6 @@ import (
 	"auth-service/internal/middleware"
 	"auth-service/internal/models"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -174,14 +173,24 @@ func (s *ServiceImpl) Me(userID string) (*models.User, error) {
 }
 
 func (s *ServiceImpl) generateAuthResponse(user *models.User) (*models.AuthResponse, error) {
-	accessToken, err := s.createAccessToken(user)
+	accessToken, err := middleware.CreateToken(
+		user.ID,
+		user.Role,
+		s.jwtSecret,
+		15*time.Minute,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create access token: %w", err)
 	}
 
-	refreshToken, err := s.createRefreshToken(user)
+	refreshToken, err := middleware.CreateToken(
+		user.ID,
+		user.Role,
+		s.refreshSecret,
+		7*24*time.Hour,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create refresh token: %w", err)
 	}
 
 	err = s.db.StoreRefreshToken(&models.RefreshToken{
@@ -198,28 +207,6 @@ func (s *ServiceImpl) generateAuthResponse(user *models.User) (*models.AuthRespo
 		RefreshToken: refreshToken,
 		User:         user,
 	}, nil
-}
-
-func (s *ServiceImpl) createAccessToken(user *models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"userId": user.ID,
-		"role":   user.Role,
-		"exp":    time.Now().Add(15 * time.Minute).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.jwtSecret)
-}
-
-func (s *ServiceImpl) createRefreshToken(user *models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"userId": user.ID,
-		"role":   user.Role,
-		"exp":    time.Now().Add(7 * 24 * time.Hour).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.refreshSecret)
 }
 
 func (s *ServiceImpl) GetAllUsers(role string) ([]models.User, error) {
