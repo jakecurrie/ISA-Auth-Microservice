@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,19 +23,6 @@ var (
 	ErrExpiredToken = errors.New("expired token")
 	ErrMissingToken = errors.New("missing token")
 )
-
-func extractBearerToken(authHeader string) (string, error) {
-	if authHeader == "" {
-		return "", ErrMissingToken
-	}
-
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", ErrInvalidToken
-	}
-
-	return parts[1], nil
-}
 
 func VerifyToken(tokenString string, secret []byte) (*models.Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
