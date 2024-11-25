@@ -13,23 +13,15 @@ type RegisterRequest struct {
 	Name     string `json:"name"`
 }
 
-type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token"`
-}
-
-type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type ValidateResponse struct {
 	Email string `json:"email"`
 }
 
 type AuthResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	User         *User  `json:"user"`
+	User *User `json:"user"`
+	// Internal fields, not JSON encoded
+	AccessToken  string `json:"-"`
+	RefreshToken string `json:"-"`
 }
 
 type Claims struct {
