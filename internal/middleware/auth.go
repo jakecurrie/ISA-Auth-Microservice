@@ -68,29 +68,26 @@ func CreateToken(userID, role string, secret []byte, expiration time.Duration) (
 func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "OPTIONS" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if r.URL.Path == "/auth/refresh" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			tokenString, err := extractBearerToken(r.Header.Get("Authorization"))
+			cookie, err := r.Cookie("access_token")
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			claims, err := VerifyToken(tokenString, jwtSecret)
+			claims, err := VerifyToken(cookie.Value, jwtSecret)
 			if err != nil {
 				switch {
 				case errors.Is(err, ErrExpiredToken):
+					http.SetCookie(w, &http.Cookie{
+						Name:     "access_token",
+						Value:    "",
+						Path:     "/",
+						HttpOnly: true,
+						Secure:   true,
+						SameSite: http.SameSiteNoneMode,
+						MaxAge:   -1,
+					})
 					http.Error(w, "token expired", http.StatusUnauthorized)
-				case errors.Is(err, ErrInvalidToken):
-					http.Error(w, "invalid token", http.StatusUnauthorized)
 				default:
 					http.Error(w, "unauthorized", http.StatusUnauthorized)
 				}
