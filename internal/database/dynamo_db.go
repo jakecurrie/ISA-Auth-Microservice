@@ -210,3 +210,26 @@ func (db *DB) DeleteUser(userID string) error {
 
 	return nil
 }
+
+func (db *DB) UpdateUserName(userID string, name string) error {
+	input := &dynamodb.UpdateItemInput{
+		TableName: &db.usersTable,
+		Key: map[string]types.AttributeValue{
+			"id": &types.AttributeValueMemberS{Value: userID},
+		},
+		UpdateExpression: aws.String("SET #name = :name"),
+		ExpressionAttributeNames: map[string]string{
+			"#name": "name",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":name": &types.AttributeValueMemberS{Value: name},
+		},
+	}
+
+	_, err := db.client.UpdateItem(context.TODO(), input)
+	if err != nil {
+		return fmt.Errorf("failed to update user name: %w", err)
+	}
+
+	return nil
+}

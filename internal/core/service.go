@@ -27,6 +27,7 @@ type Database interface {
 	UpdateLastActive(userID string) error
 	GetAllUsers() ([]models.User, error)
 	DeleteUser(userID string) error
+	UpdateUserName(userID string, name string) error
 }
 
 type ServiceImpl struct {
@@ -234,6 +235,26 @@ func (s *ServiceImpl) DeleteAccount(userID string) error {
 
 	if err := s.db.DeleteUser(userID); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *ServiceImpl) UpdateUserName(userID string, name string) error {
+	user, err := s.db.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify user: %w", err)
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	if err := s.db.UpdateUserName(userID, name); err != nil {
+		return fmt.Errorf("failed to update user name: %w", err)
 	}
 
 	return nil

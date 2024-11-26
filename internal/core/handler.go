@@ -15,6 +15,7 @@ type Service interface {
 	Me(userID string) (*models.User, error)
 	GetAllUsers(isAdmin bool) ([]models.User, error)
 	DeleteAccount(userID string) error
+	UpdateUserName(userID string, name string) error
 }
 
 type Handler struct {
@@ -213,4 +214,46 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*models.Claims)
+	if !ok || claims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.UserID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req models.UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.UpdateUserName(claims.UserID, req.Name); err != nil {
+		if err == ErrUserNotFound {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.svc.Me(claims.UserID)
+	if err != nil {
+		http.Error(w, "Failed to fetch updated user data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }

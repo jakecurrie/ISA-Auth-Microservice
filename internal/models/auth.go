@@ -13,6 +13,10 @@ type RegisterRequest struct {
 	Name     string `json:"name"`
 }
 
+type UpdateUserRequest struct {
+	Name string `json:"name"`
+}
+
 type ValidateResponse struct {
 	Email string `json:"email"`
 }
