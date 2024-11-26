@@ -55,6 +55,7 @@ func init() {
 	protected := auth.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware([]byte(cfg.JWTSecret)))
 	protected.HandleFunc("/me", handler.Me).Methods("GET")
+	protected.HandleFunc("/delete", handler.DeleteAccount).Methods("DELETE")
 
 	// Admin only route
 	admin := router.PathPrefix("/admin").Subrouter()

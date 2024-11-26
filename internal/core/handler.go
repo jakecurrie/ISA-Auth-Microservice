@@ -14,6 +14,7 @@ type Service interface {
 	RefreshToken(refreshToken string) (*models.AuthResponse, error)
 	Me(userID string) (*models.User, error)
 	GetAllUsers(isAdmin bool) ([]models.User, error)
+	DeleteAccount(userID string) error
 }
 
 type Handler struct {
@@ -147,6 +148,50 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*models.Claims)
+	if !ok || claims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.UserID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.svc.DeleteAccount(claims.UserID); err != nil {
+		if err == ErrUserNotFound {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to delete account", http.StatusInternalServerError)
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    "",

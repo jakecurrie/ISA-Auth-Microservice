@@ -186,3 +186,27 @@ func (db *DB) GetAllUsers() ([]models.User, error) {
 
 	return users, nil
 }
+
+func (db *DB) DeleteUser(userID string) error {
+	_, err := db.client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName: &db.tokensTable,
+		Key: map[string]types.AttributeValue{
+			"user_id": &types.AttributeValueMemberS{Value: userID},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete refresh tokens: %w", err)
+	}
+
+	_, err = db.client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName: &db.usersTable,
+		Key: map[string]types.AttributeValue{
+			"id": &types.AttributeValueMemberS{Value: userID},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	return nil
+}

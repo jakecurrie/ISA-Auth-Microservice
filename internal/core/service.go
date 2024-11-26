@@ -26,6 +26,7 @@ type Database interface {
 	ValidateRefreshToken(userID, token string) (bool, error)
 	UpdateLastActive(userID string) error
 	GetAllUsers() ([]models.User, error)
+	DeleteUser(userID string) error
 }
 
 type ServiceImpl struct {
@@ -220,4 +221,20 @@ func (s *ServiceImpl) GetAllUsers(isAdmin bool) ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+func (s *ServiceImpl) DeleteAccount(userID string) error {
+	user, err := s.db.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify user: %w", err)
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	if err := s.db.DeleteUser(userID); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	return nil
 }
