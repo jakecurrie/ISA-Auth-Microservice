@@ -67,7 +67,7 @@ func (s *ServiceImpl) Register(email, password, name string) (*models.AuthRespon
 		Email:      email,
 		Name:       name,
 		Password:   string(hashedPassword),
-		Role:       "user",
+		IsAdmin:    false,
 		ApiCalls:   0,
 		CreatedAt:  time.Now(),
 		LastActive: time.Now(),
@@ -123,7 +123,7 @@ func (s *ServiceImpl) RefreshToken(refreshToken string) (*models.AuthResponse, e
 
 	newAccessToken, err := middleware.CreateToken(
 		user.ID,
-		user.Role,
+		user.IsAdmin,
 		s.jwtSecret,
 		15*time.Minute,
 	)
@@ -133,7 +133,7 @@ func (s *ServiceImpl) RefreshToken(refreshToken string) (*models.AuthResponse, e
 
 	newRefreshToken, err := middleware.CreateToken(
 		user.ID,
-		user.Role,
+		user.IsAdmin,
 		s.refreshSecret,
 		7*24*time.Hour,
 	)
@@ -175,7 +175,7 @@ func (s *ServiceImpl) Me(userID string) (*models.User, error) {
 func (s *ServiceImpl) generateAuthResponse(user *models.User) (*models.AuthResponse, error) {
 	accessToken, err := middleware.CreateToken(
 		user.ID,
-		user.Role,
+		user.IsAdmin,
 		s.jwtSecret,
 		15*time.Minute,
 	)
@@ -185,7 +185,7 @@ func (s *ServiceImpl) generateAuthResponse(user *models.User) (*models.AuthRespo
 
 	refreshToken, err := middleware.CreateToken(
 		user.ID,
-		user.Role,
+		user.IsAdmin,
 		s.refreshSecret,
 		7*24*time.Hour,
 	)
