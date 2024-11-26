@@ -58,9 +58,6 @@ func (db *DB) CreateUser(user *models.User) error {
 }
 
 func (db *DB) GetUserByEmail(email string) (*models.User, error) {
-	log.Printf("Getting user by email: %s", email)
-	log.Printf("Using table: %s", db.usersTable)
-
 	result, err := db.client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:              &db.usersTable,
 		IndexName:              aws.String("email-index"),
@@ -70,11 +67,9 @@ func (db *DB) GetUserByEmail(email string) (*models.User, error) {
 		},
 	})
 	if err != nil {
-		log.Printf("DynamoDB Query error: %v", err)
 		return nil, fmt.Errorf("query error: %w", err)
 	}
 
-	log.Printf("Query result items length: %d", len(result.Items))
 	if len(result.Items) == 0 {
 		return nil, nil
 	}
@@ -82,7 +77,6 @@ func (db *DB) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 	err = attributevalue.UnmarshalMap(result.Items[0], &user)
 	if err != nil {
-		log.Printf("Unmarshal error: %v", err)
 		return nil, fmt.Errorf("unmarshal error: %w", err)
 	}
 	return &user, nil
