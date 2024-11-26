@@ -49,6 +49,7 @@ func init() {
 	auth.HandleFunc("/register", handler.Register).Methods("POST")
 	auth.HandleFunc("/login", handler.Login).Methods("POST")
 	auth.HandleFunc("/refresh", handler.Refresh).Methods("POST")
+	auth.HandleFunc("/logout", handler.Logout).Methods("POST")
 
 	// Protected routes
 	protected := auth.PathPrefix("").Subrouter()
