@@ -7,7 +7,7 @@ type User struct {
 	Email      string    `json:"email" dynamodbav:"email"`
 	Name       string    `json:"name" dynamodbav:"name"`
 	Password   string    `json:"-" dynamodbav:"password"`
-	IsAdmin    bool      `json:"isAdmin" dynamodbav:"is_admin"`
+	IsAdmin    bool      `json:"isAdmin" dynamodbav:"isAdmin"`
 	ApiCalls   int       `json:"apiCalls" dynamodbav:"api_calls"`
 	CreatedAt  time.Time `json:"createdAt" dynamodbav:"created_at"`
 	LastActive time.Time `json:"lastActive" dynamodbav:"last_active"`
