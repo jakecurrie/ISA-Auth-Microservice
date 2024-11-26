@@ -13,7 +13,7 @@ type Service interface {
 	Login(email, password string) (*models.AuthResponse, error)
 	RefreshToken(refreshToken string) (*models.AuthResponse, error)
 	Me(userID string) (*models.User, error)
-	GetAllUsers(role string) ([]models.User, error)
+	GetAllUsers(isAdmin bool) ([]models.User, error)
 }
 
 type Handler struct {
@@ -22,6 +22,33 @@ type Handler struct {
 
 func NewHandler(svc Service) *Handler {
 	return &Handler{svc}
+}
+
+func (h *Handler) setAuthCookies(w http.ResponseWriter, response *models.AuthResponse) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    response.AccessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   15 * 60,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    response.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(models.AuthResponse{
+		User: response.User,
+	})
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -42,8 +69,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.setAuthCookies(w, response)
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -64,30 +90,23 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.setAuthCookies(w, response)
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
-	var req models.RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request - error decoding request", http.StatusBadRequest)
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		http.Error(w, "Refresh token not found", http.StatusUnauthorized)
 		return
 	}
 
-	if req.RefreshToken == "" {
-		http.Error(w, "Refresh token is required", http.StatusBadRequest)
-		return
-	}
-
-	response, err := h.svc.RefreshToken(req.RefreshToken)
+	response, err := h.svc.RefreshToken(cookie.Value)
 	if err != nil {
 		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.setAuthCookies(w, response)
 }
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +133,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value(middleware.ClaimsKey).(*models.Claims)
-	users, err := h.svc.GetAllUsers(claims.Role)
+	users, err := h.svc.GetAllUsers(claims.IsAdmin)
 	if err != nil {
 		if err.Error() == "unauthorized: admin access required" {
 			http.Error(w, "Admin access required", http.StatusForbidden)
@@ -125,4 +144,28 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
+
+	w.WriteHeader(http.StatusOK)
 }

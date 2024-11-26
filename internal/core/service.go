@@ -209,8 +209,8 @@ func (s *ServiceImpl) generateAuthResponse(user *models.User) (*models.AuthRespo
 	}, nil
 }
 
-func (s *ServiceImpl) GetAllUsers(role string) ([]models.User, error) {
-	if role != "admin" {
+func (s *ServiceImpl) GetAllUsers(isAdmin bool) ([]models.User, error) {
+	if !isAdmin {
 		return nil, errors.New("unauthorized: admin access required")
 	}
 

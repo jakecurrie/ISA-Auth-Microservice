@@ -51,10 +51,10 @@ func VerifyToken(tokenString string, secret []byte) (*models.Claims, error) {
 	return claims, nil
 }
 
-func CreateToken(userID, role string, secret []byte, expiration time.Duration) (string, error) {
+func CreateToken(userID string, isAdmin bool, secret []byte, expiration time.Duration) (string, error) {
 	claims := models.Claims{
-		UserID: userID,
-		Role:   role,
+		UserID:  userID,
+		IsAdmin: isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -68,8 +68,17 @@ func CreateToken(userID, role string, secret []byte, expiration time.Duration) (
 func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "OPTIONS" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			cookie, err := r.Cookie("access_token")
 			if err != nil {
+				if r.URL.Path == "/auth/refresh" {
+					next.ServeHTTP(w, r)
+					return
+				}
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -82,6 +91,7 @@ func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
 						Name:     "access_token",
 						Value:    "",
 						Path:     "/",
+						Domain:   "",
 						HttpOnly: true,
 						Secure:   true,
 						SameSite: http.SameSiteNoneMode,

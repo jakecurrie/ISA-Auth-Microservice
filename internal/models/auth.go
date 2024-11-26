@@ -25,7 +25,7 @@ type AuthResponse struct {
 }
 
 type Claims struct {
-	UserID string `json:"userId"`
-	Role   string `json:"role"`
+	UserID  string `json:"userId"`
+	IsAdmin bool   `json:"isAdmin"`
 	jwt.RegisteredClaims
 }
